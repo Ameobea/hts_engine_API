@@ -237,25 +237,27 @@ int HTS_fseek(HTS_File * fp, long offset, int origin)
    return 1;
 }
 
-/* HTS_ftell: rapper for ftell */
-size_t HTS_ftell(HTS_File * fp)
+/* HTS_ftell: wrapper for ftell */
+void HTS_ftell(HTS_File * fp, fpos_t* pos)
 {
-   if (fp == NULL) {
-      return 0;
-   } else if (fp->type == HTS_FILE) {
-      fpos_t pos;
-      fgetpos((FILE *) fp->pointer, &pos);
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__APPLE__) || defined(__ANDROID__)
-      return (size_t) pos;
-#else
-      return (size_t) pos.__pos;
-#endif                          /* _WIN32 || __CYGWIN__ || __APPLE__ || __ANDROID__ */
+   if (fp->type == HTS_FILE) {
+      fgetpos((FILE *) fp->pointer, pos);
    } else if (fp->type == HTS_DATA) {
-      HTS_Data *d = (HTS_Data *) fp->pointer;
-      return d->index;
+      HTS_error(1, "HTS_ftell: HTS_DATA file type is not implemented.\n");
+   } else {
+      HTS_error(1, "HTS_ftell: Unknown file type.\n");
    }
-   HTS_error(0, "HTS_ftell: Unknown file type.\n");
-   return 0;
+}
+
+void HTS_fsetpos(HTS_File * fp, fpos_t* pos)
+{
+   if (fp->type == HTS_FILE) {
+      fsetpos((FILE *) fp->pointer, pos);
+   } else if (fp->type == HTS_DATA) {
+      HTS_error(1, "HTS_fsetpos: HTS_DATA file type is not implemented.\n");
+   } else {
+      HTS_error(1, "HTS_fsetpos: Unknown file type.\n");
+   }
 }
 
 /* HTS_fread: wrapper for fread */

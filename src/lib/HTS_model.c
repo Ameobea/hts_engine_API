@@ -948,6 +948,14 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
    ms->num_voices = num_voices;
 
    for (i = 0; i < num_voices && error == FALSE; i++) {
+      // // file sanity check
+      // fp = HTS_fopen_from_fn(voices[i], "rb");
+      // char chars[16];
+      // for (int j=0; j<16; j++) {
+      //    chars[j] = HTS_fgetc(fp);
+      // }
+      // HTS_error(0, &chars);
+
       /* open file */
       fp = HTS_fopen_from_fn(voices[i], "rb");
       if (fp == NULL) {
@@ -1054,6 +1062,12 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
          if (temp_gv_off_context != NULL)
             free(temp_gv_off_context);
       }
+
+      if (ms->num_streams < 0) {
+         HTS_error(0, "ERROR: invalid number of streams", ms->num_streams);
+         exit(1);
+      }
+
       /* find stream names */
       if (i == 0) {
          stream_type_list = (char **) HTS_calloc(ms->num_streams, sizeof(char *));
@@ -1326,7 +1340,8 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
                HTS_Model_initialize(&ms->gv[j][k]);
          }
       }
-      start_of_data = HTS_ftell(fp);
+      fpos_t start_of_data;
+      HTS_ftell(fp, &start_of_data);
       /* load duration */
       pdf_fp = NULL;
       tree_fp = NULL;
@@ -1336,7 +1351,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
          e = (size_t) atoi(&temp_duration_pdf[matched_size]);
          HTS_fseek(fp, (long) s, SEEK_CUR);
          pdf_fp = HTS_fopen_from_fp(fp, e - s + 1);
-         HTS_fseek(fp, start_of_data, SEEK_SET);
+         HTS_fsetpos(fp, &start_of_data);
       }
       matched_size = 0;
       if (HTS_get_token_from_string_with_separator(temp_duration_tree, &matched_size, buff2, '-') == TRUE) {
@@ -1344,7 +1359,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
          e = (size_t) atoi(&temp_duration_tree[matched_size]);
          HTS_fseek(fp, (long) s, SEEK_CUR);
          tree_fp = HTS_fopen_from_fp(fp, e - s + 1);
-         HTS_fseek(fp, start_of_data, SEEK_SET);
+         HTS_fsetpos(fp, &start_of_data);
       }
       if (HTS_Model_load(&ms->duration[i], pdf_fp, tree_fp, ms->num_states, 1, FALSE) != TRUE)
          error = TRUE;
@@ -1362,7 +1377,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
                e = (size_t) atoi(&temp_stream_win[j][k][matched_size]);
                HTS_fseek(fp, (long) s, SEEK_CUR);
                win_fp[k] = HTS_fopen_from_fp(fp, e - s + 1);
-               HTS_fseek(fp, start_of_data, SEEK_SET);
+               HTS_fsetpos(fp, &start_of_data);
             }
          }
          if (HTS_Window_load(&ms->window[j], win_fp, num_windows[j]) != TRUE)
@@ -1381,7 +1396,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
             e = (size_t) atoi(&temp_stream_pdf[j][matched_size]);
             HTS_fseek(fp, (long) s, SEEK_CUR);
             pdf_fp = HTS_fopen_from_fp(fp, e - s + 1);
-            HTS_fseek(fp, start_of_data, SEEK_SET);
+            HTS_fsetpos(fp, &start_of_data);
          }
          matched_size = 0;
          if (HTS_get_token_from_string_with_separator(temp_stream_tree[j], &matched_size, buff2, '-') == TRUE) {
@@ -1389,7 +1404,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
             e = (size_t) atoi(&temp_stream_tree[j][matched_size]);
             HTS_fseek(fp, (long) s, SEEK_CUR);
             tree_fp = HTS_fopen_from_fp(fp, e - s + 1);
-            HTS_fseek(fp, start_of_data, SEEK_SET);
+            HTS_fsetpos(fp, &start_of_data);
          }
          if (HTS_Model_load(&ms->stream[i][j], pdf_fp, tree_fp, vector_length[j], num_windows[j], is_msd[j]) != TRUE)
             error = TRUE;
@@ -1406,7 +1421,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
             e = (size_t) atoi(&temp_gv_pdf[j][matched_size]);
             HTS_fseek(fp, (long) s, SEEK_CUR);
             pdf_fp = HTS_fopen_from_fp(fp, e - s + 1);
-            HTS_fseek(fp, start_of_data, SEEK_SET);
+            HTS_fsetpos(fp, &start_of_data);
          }
          matched_size = 0;
          if (HTS_get_token_from_string_with_separator(temp_gv_tree[j], &matched_size, buff2, '-') == TRUE) {
@@ -1414,7 +1429,7 @@ HTS_Boolean HTS_ModelSet_load(HTS_ModelSet * ms, char **voices, size_t num_voice
             e = (size_t) atoi(&temp_gv_tree[j][matched_size]);
             HTS_fseek(fp, (long) s, SEEK_CUR);
             tree_fp = HTS_fopen_from_fp(fp, e - s + 1);
-            HTS_fseek(fp, start_of_data, SEEK_SET);
+            HTS_fsetpos(fp, &start_of_data);
          }
          if (use_gv[j] == TRUE) {
             if (HTS_Model_load(&ms->gv[i][j], pdf_fp, tree_fp, vector_length[j], 1, FALSE) != TRUE)
